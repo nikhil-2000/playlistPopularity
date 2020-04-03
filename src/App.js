@@ -75,7 +75,7 @@ class Playlist extends Component {
       <div style = {playlistStyle}>
         <img src = {this.props.playlist.image} style = {{width: '50%'}} />
         <h3 style = {{'font-size':'30px',fontWeight:'bold ',padding: '15px'}}><b>{this.props.playlist.name}</b></h3>
-        <button onClick = {() => }>Check Popularity</button>
+        <button>Check Popularity</button>
       </div>
     );
   }
