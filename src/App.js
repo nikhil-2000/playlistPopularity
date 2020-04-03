@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
+import 'reset-css/reset.css' 
 import './App.css';
 import queryString from 'query-string';
-import request from 'request';
 
 
 let defaultTextColor = '#1DB954';
@@ -74,12 +74,8 @@ class Playlist extends Component {
     return (
       <div style = {playlistStyle}>
         <img src = {this.props.playlist.image} style = {{width: '50%'}} />
-        <h3 style = {{'font-size':'30px',fontWeight:'bold '}}><b>{this.props.playlist.name}</b></h3>
-        <table style = {{'font-size':'20px',width: '50%'}}>
-          {this.props.playlist.songs.map( song =>
-            (<tr><td>{song.name}</td><td style = {{padding: '10px'}}>{song.artist}</td></tr>)
-          )}
-        </table>
+        <h3 style = {{'font-size':'30px',fontWeight:'bold ',padding: '15px'}}><b>{this.props.playlist.name}</b></h3>
+        <button onClick = {() => }>Check Popularity</button>
       </div>
     );
   }
@@ -130,7 +126,8 @@ class App extends Component {
           .map(trackData => ({
             name:trackData.name,
             duration: trackData.duration_ms/1000,
-            artist: trackData.artists[0].name
+            artist: trackData.artists[0].name,
+            popularity: trackData.popularity
           }))
         })
         return playlists
@@ -164,7 +161,7 @@ class App extends Component {
           })
         : []
     return (
-      <div className="App">
+      <div className="App" >
         {this.state.user ?
         <div>
 
@@ -183,11 +180,10 @@ class App extends Component {
            <Playlist playlist = {playlist} />
           )}
 
-
-        </div> : <button onClick = {() => 
+        </div> : <button onClick = {() => {
           window.location = window.location.href.includes('localhost') 
           ? 'http:localhost:8888/login'
-          : 'https://my-playlist-search-backend.herokuapp.com/login'
+          : ''}
 
         }
         style = {{'border-radius': '25%','background-color': defaultTextColor,color: 'white',
