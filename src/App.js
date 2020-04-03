@@ -65,6 +65,19 @@ class Filter extends Component {
   }
 }
 
+class SortingOption extends Component {
+
+  render () {  
+    return (
+      <select id="sortingOptions" onChange={event => this.props.onChange(event.target.value)}>
+        <option value="Name">Name</option>
+        <option value="Total Popularity">Total Popularity</option>
+        <option value="Average Popularity">Average Popularity</option>
+      </select>
+    )
+  }
+}
+
 class Playlist extends Component {
   render() {
     let playlistStyle = {
@@ -74,11 +87,20 @@ class Playlist extends Component {
       padding: '10px',
       align: 'center'
     };
+    let songsPopularities = this.props.playlist.songs.map(song => {
+      return song.popularity
+    })
+    let arrSum = arr => arr.reduce((a,b) => a + b, 0)
+    let totalPopularity = arrSum(songsPopularities)
+    let avgPopularity = totalPopularity/songsPopularities.length
+    
+    
     return (
       <div style={playlistStyle}>
         <img src={this.props.playlist.image} style={{ width: '50%' }} />
         <h3 style={{ 'font-size': '30px', fontWeight: 'bold ', padding: '15px' }}><b>{this.props.playlist.name}</b></h3>
-        <button>Check Popularity</button>
+        <p>Total Popularity: {totalPopularity} </p>
+        <p>Average Popularity per song: {Math.round(avgPopularity)}</p>
       </div>
     );
   }
@@ -90,7 +112,8 @@ class App extends Component {
     super()
     this.state = {
       serverData: {},
-      filterString: ''
+      filterString: '',
+      sortOption: "Name"
     }
   }
   componentDidMount() {
@@ -98,7 +121,6 @@ class App extends Component {
     let accessToken = parsed.access_token
     if (!accessToken)
       return;
-
 
     fetch('https://api.spotify.com/v1/me', {
       headers: { 'Authorization': 'Bearer ' + accessToken }
@@ -139,16 +161,45 @@ class App extends Component {
       })
       .then(playlists => this.setState({
         playlists: playlists.map(item => {
-          console.log(item.trackDatas.artist)
           return {
             name: item.name,
             image: item.images[0].url,
-            songs: item.trackDatas.slice(0, 3)
+            songs: item.trackDatas,
           }
         })
       }))
 
+ 
 
+  }
+
+  sortByOption(array,option) {
+    array = array.map((playlist) => {
+      playlist.lowerName = playlist.name.toLowerCase()
+      return playlist
+    })
+
+    if (option == "Name") {
+      array.sort((a, b) => (a.lowerName > b.lowerName) ? 1 : -1)
+    }else if (option == "Total Popularity") {
+      array.sort((a, b) => (a.totalPopularity < b.totalPopularity) ? 1 : -1)    
+    }else if (option == "Average Popularity") {
+      array.sort((a, b) => (a.averagePopularity < b.averagePopularity) ? 1 : -1)    
+    }
+    return array
+  }
+
+  popularityMetrics (playlists) {
+    playlists = playlists.map( p => {
+      p.totalPopularity = p.songs.map(song => song.popularity).reduce(((a,b) => a + b),0)
+      return p
+    })
+    playlists = playlists.map( p => {
+      p.averagePopularity = p.totalPopularity/p.songs.length
+      return p
+    })
+
+    return playlists
   }
 
   render() {
@@ -160,9 +211,15 @@ class App extends Component {
             this.state.filterString.toLowerCase())
           let matchesSong = playlist.songs.find(song => song.name.toLowerCase()
             .includes(this.state.filterString.toLowerCase()))
-          return matchesPlaylist || matchesSong
+          return matchesPlaylist
         })
         : []
+    
+    
+    playlistsToRender = this.sortByOption(playlistsToRender,this.state.sortOption)
+    this.popularityMetrics(playlistsToRender)
+
+
     return (
       <div className="App">
         {this.state.user ?
@@ -176,6 +233,9 @@ class App extends Component {
               </h1>
             <PlaylistCounter playlists={playlistsToRender} />
             <HoursCounter playlists={playlistsToRender} />
+            <SortingOption playlists = {playlistsToRender} onChange={option => {
+              this.setState( {sortOption:option})
+            }}/>
             <Filter onTextChange={text => {
               this.setState({ filterString: text })
             }} />
@@ -188,7 +248,8 @@ class App extends Component {
               : 'https://pop-playlist-backend.herokuapp.com/login'
           }
           }
-            style={{ padding: '20px', 'font-size': '50px', 'margin-top': '20px' }}>Sign in with Spotify</button>
+            style={{'border-radius': '25%','background-color': defaultTextColor,color: 'white',
+            padding : '20px', 'font-size': '50px', 'margin-top': '20px'}}>Sign in with Spotify</button>
         }
       </div>
     );
