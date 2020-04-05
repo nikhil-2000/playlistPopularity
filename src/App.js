@@ -82,27 +82,67 @@ class Playlist extends Component {
   render() {
     let playlistStyle = {
       ...defaultStyle,
-      width: "30%",
+      width: "25%",
       display: 'inline-block',
-      padding: '10px',
-      align: 'center'
-    };
-    let songsPopularities = this.props.playlist.songs.map(song => {
-      return song.popularity
-    })
-    let arrSum = arr => arr.reduce((a,b) => a + b, 0)
-    let totalPopularity = arrSum(songsPopularities)
-    let avgPopularity = totalPopularity/songsPopularities.length
+      borderColor:'white',
+      borderStyle:'solid',
+      paddingBottom: '15px'
+    }
+
+    let buttonStyle = {
+      'border-radius': '25%',
+      'background-color': defaultTextColor,
+      color: 'white',
+      padding : '10px',
+      'margin-top': '20px'
+    }
+
+    let playlist = this.props.playlist
+
+    let textStyle = {padding: '5px' }
+    let totalPopularity = playlist.totalPopularity
+    let avgPopularity = totalPopularity/playlist.songs.length
+
+    let addToList = this.props.onClick
     
     
     return (
       <div style={playlistStyle}>
         <img src={this.props.playlist.image} style={{ width: '50%' }} />
-        <h3 style={{ 'font-size': '30px', fontWeight: 'bold ', padding: '15px' }}><b>{this.props.playlist.name}</b></h3>
-        <p>Total Popularity: {totalPopularity} </p>
-        <p>Average Popularity per song: {Math.round(avgPopularity)}</p>
+        <h1 style={{...textStyle,'font-size': '30px',fontWeight: 'bold',paddingBottom:'3px'}}><b>{this.props.playlist.name}</b></h1>
+        <button style={buttonStyle} onClick={addToList} >Add this playlist to comparison table</button>
+        <p style={textStyle}>
+          Total Popularity: {totalPopularity} <br></br>
+          Average Popularity per song: {Math.round(avgPopularity)}
+        </p>
       </div>
     );
+  }
+}
+
+class CompareTable extends Component {
+  render() {
+    let playlistsToCompare = this.props.playlists
+    let tableStyle = {
+      'width': '100%',
+      'margin': '0px'
+    }
+    return (
+     <table style = {tableStyle}>
+       <tr>
+         <td style={defaultStyle}>Playlist</td>
+         {playlistsToCompare.map(playlist => {
+           return (<td style = {defaultStyle}>{playlist.name}</td>)
+         })}
+       </tr>
+       <tr>
+         <td style={defaultStyle}>Top Five Songs</td>
+       </tr>
+       <tr>
+         <td style={defaultStyle}>Most Popular Artist</td>
+       </tr>
+     </table>
+    )
   }
 }
 
@@ -113,7 +153,8 @@ class App extends Component {
     this.state = {
       serverData: {},
       filterString: '',
-      sortOption: "Name"
+      sortOption: "Name",
+      playlistsToCompare: []
     }
   }
   componentDidMount() {
@@ -165,11 +206,10 @@ class App extends Component {
             name: item.name,
             image: item.images[0].url,
             songs: item.trackDatas,
+
           }
         })
       }))
-
- 
 
   }
 
@@ -217,7 +257,9 @@ class App extends Component {
     
     
     playlistsToRender = this.sortByOption(playlistsToRender,this.state.sortOption)
-    this.popularityMetrics(playlistsToRender)
+    playlistsToRender = this.popularityMetrics(playlistsToRender)
+
+    let playlistsToCompare = this.state.playlistsToCompare.slice(0,5)
 
 
     return (
@@ -240,8 +282,18 @@ class App extends Component {
               this.setState({ filterString: text })
             }} />
             {playlistsToRender.map((playlist, i) =>
-              <Playlist playlist={playlist} index={i} />
+              <Playlist playlist={playlist} index={i} onClick = { () => {
+                let playlist = playlistsToRender[i]
+                playlistsToCompare.unshift(playlist)
+                if (!this.state.playlistsToCompare.includes(playlist)){
+                  this.setState({playlistsToCompare: playlistsToCompare
+                  })
+                } 
+              }}/>
             )}
+
+            <CompareTable playlists = {playlistsToCompare} />
+
           </div> : <button onClick={() => {
             window.location = window.location.href.includes('localhost')
               ? 'http://localhost:8888/login'
@@ -260,4 +312,4 @@ export default App;
 
 // 
 
-// https://better-playlists-spotifyapi.herokuapp.com/
+// https://popularity-playlists-spotifyapi.herokuapp.com/
