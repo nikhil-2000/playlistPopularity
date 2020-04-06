@@ -82,11 +82,17 @@ class Playlist extends Component {
   render() {
     let playlistStyle = {
       ...defaultStyle,
-      width: "25%",
+      width: "24%",
       display: 'inline-block',
-      borderColor:'white',
-      borderStyle:'solid',
+      border: '2px solid green',
       paddingBottom: '15px'
+    }
+
+    let imageStyle = {
+      marginLeft: "auto",
+      marginRight: "auto",
+      display: "block",
+      width: '50%'
     }
 
     let buttonStyle = {
@@ -95,6 +101,12 @@ class Playlist extends Component {
       color: 'white',
       padding : '10px',
       'margin-top': '20px'
+    }
+
+    let headingStyle = {
+      'font-size': '30px',
+      fontWeight: 'bold',
+      textAlign: 'center'
     }
 
     let playlist = this.props.playlist
@@ -108,8 +120,8 @@ class Playlist extends Component {
     
     return (
       <div style={playlistStyle}>
-        <img src={this.props.playlist.image} style={{ width: '50%' }} />
-        <h1 style={{...textStyle,'font-size': '30px',fontWeight: 'bold',paddingBottom:'3px'}}><b>{this.props.playlist.name}</b></h1>
+        <img src={this.props.playlist.image} style={imageStyle} />
+        <h1 style={headingStyle}><b>{this.props.playlist.name}</b></h1>
         <button style={buttonStyle} onClick={addToList} >Add this playlist to comparison table</button>
         <p style={textStyle}>
           Total Popularity: {totalPopularity} <br></br>
@@ -121,25 +133,66 @@ class Playlist extends Component {
 }
 
 class CompareTable extends Component {
+
+  songsToOrderedList(songs){
+    return (
+      <ol>
+        {songs.map((song,i) => {
+                    console.log(song.name)
+
+          console.log(song.popularity)
+          return (
+            <li style = {{fontSize:'20px'}}>{i+1}. {song.name}</li>
+          )
+        })}
+      </ol>
+    )
+  }
+
+  getTopFive(playlist) {
+    let songs = playlist.songs
+    songs.sort((a, b) => (a.popularity < b.popularity) ? 1 : -1)
+    return this.songsToOrderedList(songs.slice(0,5))
+  }
+
+
   render() {
     let playlistsToCompare = this.props.playlists
     let tableStyle = {
       'width': '100%',
-      'margin': '0px'
+      'margin': '0px',
+      border: '2px solid green',
+      
     }
+
+    let tdWidth = 100/(playlistsToCompare.length+1)
+
+    let tdStyle = {
+      ...defaultStyle,
+      border: '2px solid green',
+      fontSize: "30px",
+      padding: '10px',  
+      width: tdWidth + '%'
+    }
+
+
+
     return (
      <table style = {tableStyle}>
        <tr>
-         <td style={defaultStyle}>Playlist</td>
+         <td style={tdStyle}>Playlist</td>
          {playlistsToCompare.map(playlist => {
-           return (<td style = {defaultStyle}>{playlist.name}</td>)
+           return (<td style = {tdStyle}>{playlist.name}</td>)
          })}
        </tr>
        <tr>
-         <td style={defaultStyle}>Top Five Songs</td>
+         <td style={tdStyle}>Top Five Songs</td>
+         {playlistsToCompare.map(playlist => {
+           return (<td style = {tdStyle}>{this.getTopFive(playlist)}</td>)
+         })}
        </tr>
        <tr>
-         <td style={defaultStyle}>Most Popular Artist</td>
+         <td style={tdStyle}>Most Popular Artist</td>
        </tr>
      </table>
     )
