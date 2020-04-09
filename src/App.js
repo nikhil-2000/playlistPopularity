@@ -134,17 +134,10 @@ class Playlist extends Component {
 
 class CompareTable extends Component {
 
-  songsToOrderedList(songs){
+  toOrderedList(items){
     return (
       <ol>
-        {songs.map((song,i) => {
-                    console.log(song.name)
-
-          console.log(song.popularity)
-          return (
-            <li style = {{fontSize:'20px'}}>{i+1}. {song.name}</li>
-          )
-        })}
+        {items.map((item,i) => (<li style = {{fontSize:'20px'}}>{i+1}. {item.name} {item.popularity}</li>))}
       </ol>
     )
   }
@@ -152,9 +145,15 @@ class CompareTable extends Component {
   getTopFive(playlist) {
     let songs = playlist.songs
     songs.sort((a, b) => (a.popularity < b.popularity) ? 1 : -1)
-    return this.songsToOrderedList(songs.slice(0,5))
+    return this.toOrderedList(songs.slice(0,5))
   }
 
+  getTopThreeArtists(artists) {
+    artists.sort((a, b) => (a.popularity < b.popularity) ? 1 : -1)
+    console.log(artists)
+
+    return this.toOrderedList(artists.slice(0,3))
+  }
 
   render() {
     let playlistsToCompare = this.props.playlists
@@ -175,8 +174,6 @@ class CompareTable extends Component {
       width: tdWidth + '%'
     }
 
-
-
     return (
      <table style = {tableStyle}>
        <tr>
@@ -192,7 +189,10 @@ class CompareTable extends Component {
          })}
        </tr>
        <tr>
-         <td style={tdStyle}>Most Popular Artist</td>
+         <td style={tdStyle}>Most Popular Artists</td>
+         {playlistsToCompare.map(playlist => {
+           return (<td style = {tdStyle}>{this.getTopThreeArtists(playlist.artists)}</td>)
+         })}
        </tr>
      </table>
     )
@@ -207,9 +207,100 @@ class App extends Component {
       serverData: {},
       filterString: '',
       sortOption: "Name",
-      playlistsToCompare: []
+      playlistsToCompare: [],
     }
   }
+
+  trackFetch(accessToken) {
+
+
+    fetch('https://api.spotify.com/v1/me/playlists', {
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    }).then(response => response.json())
+      .then(playlistData => {
+        let playlists = playlistData.items
+        let trackDataPromises = playlists.map(playlist => {
+          let responsePromise = fetch(playlist.tracks.href, {
+            headers: { 'Authorization': 'Bearer ' + accessToken }
+          })
+          let trackDataPromise = responsePromise.then(response => response.json())          
+          return trackDataPromise
+        })
+
+        let gettingArtistPromises = trackDataPromises.map(playlist => {
+
+          let artistPromises = playlist.then(tracks => {
+            let artists = []
+            let artistNames = []
+            tracks.items.forEach(track => {
+              track = track.track
+              let artist = track.artists[0]
+              if (!artistNames.includes(artist.name)){
+                artistNames.push(artist.name)
+                artists.push(artist)
+              }
+            })
+            artists = artists.map(artist => {
+              let responsePromise = fetch(artist.href, {
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+              })
+              let artistData = responsePromise.then(response => response.json())          
+              return artistData
+            })
+            let allArtists = Promise.all(artists)
+            return allArtists
+          })
+          return {
+            tracks : playlist.then(p => p.items),
+            artists : artistPromises
+          }
+        })
+
+        let combiningTrackArtists = gettingArtistPromises.map(playlistData => {
+          let bothPromises = [playlistData.tracks,playlistData.artists]
+          return Promise.all(bothPromises)
+        })
+        console.log(combiningTrackArtists)
+
+        let allPromises = Promise.all(combiningTrackArtists)
+        let playlistsPromise = allPromises.then(allPlaylistData => {
+          allPlaylistData.forEach((playlist, i) => {
+            playlists[i].trackDatas = playlist[0]
+              .map(item => item.track)
+              .map(track => {
+                return {
+                  name: track.name.split(/\((.+)/)[0] + " ",
+                  duration: track.duration_ms / 1000,
+                  artist: track.artists[0].name,
+                  popularity: track.popularity
+                }
+              })
+            playlists[i].artistDatas = playlist[1]
+              .map(artist => {
+                return {
+                  name : artist.name,
+                  popularity : artist.popularity
+                }
+              })
+          })
+          return playlists
+        })
+        return playlistsPromise
+      })
+      .then(playlists => this.setState({
+        playlists: playlists.map(item => {
+          return {
+            name: item.name,
+            image: item.images[0].url,
+            songs: item.trackDatas,
+            artists: item.artistDatas
+          }
+        })
+      }))
+
+  }
+
+
   componentDidMount() {
     let parsed = queryString.parse(window.location.search);
     let accessToken = parsed.access_token
@@ -225,44 +316,7 @@ class App extends Component {
         }
       }))
 
-    fetch('https://api.spotify.com/v1/me/playlists', {
-      headers: { 'Authorization': 'Bearer ' + accessToken }
-    }).then(response => response.json())
-      .then(playlistData => {
-        let playlists = playlistData.items
-        let trackDataPromises = playlists.map(playlist => {
-          let responsePromise = fetch(playlist.tracks.href, {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-          })
-          let trackDataPromise = responsePromise.then(response => response.json())
-          return trackDataPromise
-        })
-        let allTracksDataPromises = Promise.all(trackDataPromises)
-        let playlistsPromise = allTracksDataPromises.then(trackDatas => {
-          trackDatas.forEach((trackData, i) => {
-            playlists[i].trackDatas = trackData.items
-              .map(item => item.track)
-              .map(trackData => ({
-                name: trackData.name,
-                duration: trackData.duration_ms / 1000,
-                artist: trackData.artists[0].name,
-                popularity: trackData.popularity
-              }))
-          })
-          return playlists
-        })
-        return playlistsPromise
-      })
-      .then(playlists => this.setState({
-        playlists: playlists.map(item => {
-          return {
-            name: item.name,
-            image: item.images[0].url,
-            songs: item.trackDatas,
-
-          }
-        })
-      }))
+    this.trackFetch(accessToken)
 
   }
 
@@ -366,3 +420,5 @@ export default App;
 // 
 
 // https://popularity-playlists-spotifyapi.herokuapp.com/
+
+// artist promises combine with track promise
