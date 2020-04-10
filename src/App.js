@@ -73,6 +73,8 @@ class SortingOption extends Component {
         <option value="Name">Name</option>
         <option value="Total Popularity">Total Popularity</option>
         <option value="Average Popularity">Average Popularity</option>
+        <option value="Total Artist Popularity">Total Artist Popularity</option>
+        <option value="Average Artist Popularity">Average Artist Popularity</option>
       </select>
     )
   }
@@ -113,7 +115,7 @@ class Playlist extends Component {
 
     let textStyle = {padding: '5px' }
     let totalPopularity = playlist.totalPopularity
-    let avgPopularity = totalPopularity/playlist.songs.length
+    let avgPopularity = playlist.averagePopularity
 
     let addToList = this.props.onClick
     
@@ -125,7 +127,9 @@ class Playlist extends Component {
         <button style={buttonStyle} onClick={addToList} >Add this playlist to comparison table</button>
         <p style={textStyle}>
           Total Popularity: {totalPopularity} <br></br>
-          Average Popularity per song: {Math.round(avgPopularity)}
+          Average Popularity per song: {Math.round(avgPopularity)}<br></br>
+          Artist Total Popularity : {playlist.artistsTotalPopularity}<br></br>
+          Artist Average Popularity : {Math.round(playlist.averageArtistsPopularity)}
         </p>
       </div>
     );
@@ -135,9 +139,17 @@ class Playlist extends Component {
 class CompareTable extends Component {
 
   toOrderedList(items){
+    let html = ((item,i) => {
+    
+    return(<table style = {{width : '100%'}}><tbody>
+      <tr>
+        <td style = {{fontSize: '20px',width : '90%'}}>{i+1}. {item.name}</td><td style = {{width : '10%',fontSize: '20px'}}>{item.popularity}</td>
+      </tr>
+      </tbody></table>)
+    })
     return (
       <ol>
-        {items.map((item,i) => (<li style = {{fontSize:'20px'}}>{i+1}. {item.name} {item.popularity}</li>))}
+        {items.map((item,i) => html(item,i))}
       </ol>
     )
   }
@@ -269,7 +281,7 @@ class App extends Component {
               .map(item => item.track)
               .map(track => {
                 return {
-                  name: track.name.split(/\((.+)/)[0] + " ",
+                  name: track.name.split(/\((.+)/ )[0] + " ",
                   duration: track.duration_ms / 1000,
                   artist: track.artists[0].name,
                   popularity: track.popularity
@@ -299,7 +311,6 @@ class App extends Component {
       }))
 
   }
-
 
   componentDidMount() {
     let parsed = queryString.parse(window.location.search);
@@ -332,7 +343,12 @@ class App extends Component {
       array.sort((a, b) => (a.totalPopularity < b.totalPopularity) ? 1 : -1)    
     }else if (option == "Average Popularity") {
       array.sort((a, b) => (a.averagePopularity < b.averagePopularity) ? 1 : -1)    
+    }else if (option == "Total Artist Popularity") {
+      array.sort((a, b) => (a.artistsTotalPopularity < b.artistsTotalPopularity) ? 1 : -1)    
+    }else if (option == "Average Artist Popularity") {
+      array.sort((a, b) => (a.averageArtistsPopularity < b.averageArtistsPopularity) ? 1 : -1)    
     }
+
     return array
   }
 
@@ -345,6 +361,17 @@ class App extends Component {
       p.averagePopularity = p.totalPopularity/p.songs.length
       return p
     })
+
+    playlists = playlists.map( p => {
+      p.artistsTotalPopularity = p.artists.map(artist => artist.popularity).reduce(((a,b) => a + b),0)
+      return p
+    })
+
+    playlists = playlists.map( p => {
+      p.averageArtistsPopularity = p.artistsTotalPopularity/p.artists.length
+      return p
+    })
+
 
     return playlists
   }
