@@ -227,13 +227,13 @@ class App extends Component {
 
 
     fetch('https://api.spotify.com/v1/me/playlists', {
-      headers: { 'Authorization': 'Bearer ' + accessToken }
+      headers: { 'Authorization': 'Bearer ' + accessToken , 'Retry-After': 1}
     }).then(response => response.json())
       .then(playlistData => {
         let playlists = playlistData.items
         let trackDataPromises = playlists.map(playlist => {
           let responsePromise = fetch(playlist.tracks.href, {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
+            headers: { 'Authorization': 'Bearer ' + accessToken , 'Retry-After': 4}
           })
           let trackDataPromise = responsePromise.then(response => response.json())          
           return trackDataPromise
@@ -254,7 +254,7 @@ class App extends Component {
             })
             artists = artists.map(artist => {
               let responsePromise = fetch(artist.href, {
-                headers: { 'Authorization': 'Bearer ' + accessToken }
+                headers: { 'Authorization': 'Bearer ' + accessToken , 'Retry-After': 4}
               })
               let artistData = responsePromise.then(response => response.json())          
               return artistData
